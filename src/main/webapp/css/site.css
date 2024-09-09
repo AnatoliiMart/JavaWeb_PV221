@@ -1,0 +1,18 @@
+body{
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+}
+.spacer{
+    flex: 1 1 auto;
+}
+
+.site-logo{
+    font-size: xx-large;
+    margin: 0 20px;
+}
+.nav-addon{
+    margin-right: 20px;
+    font-size: larger;
+}
