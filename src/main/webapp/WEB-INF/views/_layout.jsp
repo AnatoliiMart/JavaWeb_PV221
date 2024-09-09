@@ -18,11 +18,12 @@
     <header>
         <nav>
             <div class="nav-wrapper green darken-1">
-                <a href="#" class="left site-logo">PV-221</a>
+                <a href="<%=contextPath%>/" class="left site-logo">PV-221</a>
                 <ul id="nav-mobile" class="left">
-                    <li><a href="<%=contextPath%>/index">Index</a></li>
-                    <li><a href="badges.html">Components</a></li>
-                    <li><a href="collapsible.html">JavaScript</a></li>
+                    <li class="<%= "home".equals(request.getAttribute("page")) ? "active" : "" %>"><a href="<%=contextPath%>/">Home</a></li>
+                    <li class="<%= "index".equals(request.getAttribute("page")) ? "active" : "" %>"><a href="<%=contextPath%>/index">Index</a></li>
+
+                    <li class="<%= "servlets".equals(request.getAttribute("page")) ? "active" : "" %>"><a href="<%=contextPath%>/servlets">Servlets</a></li>
                 </ul>
                 <a class="right nav-addon" href="<%=contextPath%>/signup">
                    <i class="material-icons">person_add</i>
