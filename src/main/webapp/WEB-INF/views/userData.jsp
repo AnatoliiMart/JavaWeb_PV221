@@ -29,7 +29,7 @@
     </tr>
     <%
         Map<String, FileItem> files = (Map<String, FileItem>) request.getAttribute("files");
-        if (fields != null) {
+        if (files != null) {
             for (Map.Entry<String, FileItem> entry : files.entrySet()) {
     %>
     <tr>
