@@ -28,5 +28,9 @@ public class SignUpServlet extends HttpServlet {
     protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
         FormParseResult result = formParseService.parse(req);
         System.out.println(result.getFields().size() + " " + result.getFields().toString() + " " + result.getFiles().size());
+        req.setAttribute("fields", result.getFields());
+        req.setAttribute("files", result.getFiles());
+        req.setAttribute("page", "userData");
+        req.getRequestDispatcher("WEB-INF/views/_layout.jsp").forward(req, resp);
     }
 }
