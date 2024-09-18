@@ -113,7 +113,7 @@ public class SignUpServlet extends HttpServlet {
                     )
             );
             new Date();
-            if (model.getBirthdate() == null || new Date().equals(model.getBirthdate())){
+            if (model.getBirthdate() == null || new Date().equals(model.getBirthdate()) || model.getBirthdate().after(new Date())){
                 throw new Exception("Invalid birthdate: '" + model.getBirthdate()+"'");
             }
         }
@@ -124,14 +124,22 @@ public class SignUpServlet extends HttpServlet {
         String uploadedName = null;
         FileItem avatar = res.getFiles().get("user-avatar");
         if ( avatar.getSize() > 0){
+            if (!isImageFile(avatar.getContentType()))
+                throw new Exception("Invalid file type! Choose another file!");
             uploadedName = fileService.upload( avatar );
             model.setAvatar( uploadedName );
         }
         System.out.println(uploadedName);
 
-        model.setPassword(res.getFields().get("user-password"));
-
         return model;
+    }
+
+    private boolean isImageFile(String contentType) {
+        return contentType.equals("image/jpeg") ||
+                contentType.equals("image/png") ||
+                contentType.equals("image/gif") ||
+                contentType.equals("image/bmp") ||
+                contentType.equals("image/svg+xml");
     }
     //    @Override
 //    protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
