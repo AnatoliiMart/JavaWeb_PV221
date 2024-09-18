@@ -10,9 +10,9 @@
             <label for="user-name">Ім'я</label>
         </div>
         <div class="input-field col s6">
-            <i class="material-icons prefix">phone</i>
-            <input id="user-phone" name="user-phone" type="tel" class="validate">
-            <label for="user-phone">Телефон</label>
+            <i class="material-icons prefix">cake</i>
+            <input id="user-birthdate" name="user-birthdate" type="date" class="validate">
+            <label for="user-birthdate">Дата народження</label>
         </div>
     </div>
     <div class="row">

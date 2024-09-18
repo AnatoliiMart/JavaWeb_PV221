@@ -5,9 +5,8 @@ import com.google.inject.Singleton;
 import itstep.learning.dal.dto.User;
 import itstep.learning.models.form.UserSignupFormModel;
 
-import java.sql.Connection;
-import java.sql.SQLException;
-import java.sql.Statement;
+import java.sql.*;
+import java.util.Date;
 import java.util.UUID;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -27,8 +26,35 @@ public class UserDao {
         return null;
     }
 
-    public User signup( UserSignupFormModel user ) {
-        return null;
+    public User signup( UserSignupFormModel model ) {
+        if (model == null) {
+            return null;
+        }
+        User user = new User();
+        user.setName(model.getName());
+        user.setEmail(model.getEmail());
+        user.setAvatar(model.getAvatar());
+        user.setBirthdate(model.getBirthdate());
+        user.setSignupDt(new Date());
+        user.setId(UUID.randomUUID());
+
+        String sql = "INSERT INTO users (id,name,email,avatar,birthdate,signup_dt) " +
+                "VALUES (?, ?, ?, ?, ?, ?)";
+        try(PreparedStatement ps = connection.prepareStatement(sql)) {
+            ps.setString(1, user.getId().toString());
+            ps.setString(2, user.getName());
+            ps.setString(3, user.getEmail());
+            ps.setString(4, user.getAvatar());
+            ps.setTimestamp(5, user.getBirthdate() == null ? null :
+                    new Timestamp(user.getBirthdate().getTime()));
+            ps.setTimestamp(6, new Timestamp(user.getSignupDt().getTime()));
+
+            ps.executeUpdate();
+        } catch (SQLException ex) {
+            logger.log( Level.WARNING, ex.getMessage() + " -- " + sql, ex );
+            return null;
+        }
+        return user;
     }
 
     public boolean installTables() {

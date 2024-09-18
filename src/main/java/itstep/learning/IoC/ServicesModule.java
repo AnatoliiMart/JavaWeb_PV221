@@ -2,6 +2,8 @@ package itstep.learning.IoC;
 
 import com.google.inject.AbstractModule;
 import com.google.inject.name.Names;
+import itstep.learning.services.files.FileService;
+import itstep.learning.services.files.LocalFileService;
 import itstep.learning.services.formParse.FormParseService;
 import itstep.learning.services.formParse.MixedFormParseService;
 import itstep.learning.services.hash.HashService;
@@ -26,8 +28,12 @@ public class ServicesModule extends AbstractModule {
         bind( HashService.class )
                 .annotatedWith( Names.named("signature") )
                 .to( ShaHashService.class ) ;
+
         bind(FormParseService.class)
                 .to(MixedFormParseService.class);
+
         bind(StringReader.class).toInstance(reader);
+
+        bind(FileService.class).to(LocalFileService.class);
     }
 }

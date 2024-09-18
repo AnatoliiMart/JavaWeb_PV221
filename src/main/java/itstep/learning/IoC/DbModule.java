@@ -36,12 +36,6 @@ public class DbModule extends AbstractModule {
                     String[] parts = line.split("=");
                     ini.put(parts[0].trim(),parts[1].trim());
                 }
-                System.out.printf(
-                        String.format("jdbc:%s://%s:%s/%s",
-                        ini.get("dbms"),
-                        ini.get("host"),
-                        ini.get("port"),
-                        ini.get("schema")));
             } catch (IOException e) {
                 throw new RuntimeException(e);
             }
