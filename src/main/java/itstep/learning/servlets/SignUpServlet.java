@@ -1,6 +1,7 @@
 package itstep.learning.servlets;
 
 import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import itstep.learning.dal.dao.UserDao;
@@ -13,32 +14,73 @@ import itstep.learning.services.formParse.FormParseService;
 import jdk.nashorn.internal.runtime.regexp.RegExp;
 import org.apache.commons.fileupload.FileItem;
 
+import javax.naming.AuthenticationException;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.rmi.ServerException;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.logging.Logger;
 
 @Singleton
 public class SignUpServlet extends HttpServlet {
     private final FormParseService formParseService;
     private final FileService fileService;
     private final UserDao userDao;
-
+    private final Logger logger;
     @Inject
-    public SignUpServlet(FormParseService formParseService, FileService fileService, UserDao userDao) {
+    public SignUpServlet(FormParseService formParseService, FileService fileService, UserDao userDao, Logger logger) {
         this.formParseService = formParseService;
         this.fileService = fileService;
         this.userDao = userDao;
+        this.logger = logger;
+    }
+
+    @Override
+    protected void service(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+        switch (req.getMethod().toUpperCase()){
+            case "PATCH": doPatch(req, resp); break;
+            default: super.service(req, resp);
+        }
     }
 
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
         req.setAttribute( "page", "signup" );
         req.getRequestDispatcher("WEB-INF/views/_layout.jsp").forward(req, resp);
+    }
+
+    protected void doPatch(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+        String userLogin = req.getParameter("user-email");
+        String userPassword = req.getParameter("user-password");
+        logger.info("User login: " + userLogin + " password: " + userPassword);
+        RestResponse restResponse = new RestResponse();
+        resp.setContentType("application/json");
+        Gson gson = new GsonBuilder().serializeNulls().create();
+
+        if(userLogin == null ||  userLogin.isEmpty() || userPassword == null || userPassword.isEmpty()){
+            restResponse.setStatus("Error");
+            restResponse.setData("Missing or empty credentials");
+            resp.getWriter().write(gson.toJson(restResponse));
+            return;
+        }
+
+
+
+        try {
+            restResponse.setData(userDao.authenticate(userLogin, userPassword));
+            restResponse.setStatus("OK");
+            resp.getWriter().print(gson.toJson(restResponse));
+        } catch (AuthenticationException | ServerException e) {
+            restResponse.setStatus("Error");
+            restResponse.setData(e.getMessage());
+            resp.getWriter().print(gson.toJson(restResponse));
+        }
+
     }
 
     @Override
@@ -103,7 +145,7 @@ public class SignUpServlet extends HttpServlet {
         if (res.getFields().get("user-repeat") == null || res.getFields().get("user-repeat").isEmpty())
             throw new Exception("Missing or empty required field: 'user-repeat'");
 
-        if (model.getPassword().equals(res.getFields().get("user-repeat")))
+        if (!model.getPassword().equals(res.getFields().get("user-repeat")))
             throw new Exception("Passwords do not match");
 
         try {
@@ -141,15 +183,6 @@ public class SignUpServlet extends HttpServlet {
                 contentType.equals("image/bmp") ||
                 contentType.equals("image/svg+xml");
     }
-    //    @Override
-//    protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
-//        FormParseResult result = formParseService.parse(req);
-//        System.out.println(result.getFields().size() + " " + result.getFields().toString() + " " + result.getFiles().size());
-//        req.setAttribute("fields", result.getFields());
-//        req.setAttribute("files", result.getFiles());
-//        req.setAttribute("page", "userData");
-//        req.getRequestDispatcher("WEB-INF/views/_layout.jsp").forward(req, resp);
-//    }
 }
 
 

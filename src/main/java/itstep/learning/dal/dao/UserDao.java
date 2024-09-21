@@ -2,9 +2,13 @@ package itstep.learning.dal.dao;
 
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
+import com.google.inject.name.Named;
 import itstep.learning.dal.dto.User;
 import itstep.learning.models.form.UserSignupFormModel;
+import itstep.learning.services.hash.HashService;
 
+import javax.naming.AuthenticationException;
+import java.rmi.ServerException;
 import java.sql.*;
 import java.util.Date;
 import java.util.UUID;
@@ -15,15 +19,44 @@ import java.util.logging.Logger;
 public class UserDao {
     private final Connection connection;
     private final Logger logger;
+    private final HashService hashService;
 
     @Inject
-    public UserDao( Connection connection, Logger logger ) {
+    public UserDao(Connection connection, Logger logger, @Named("digest") HashService hashService) {
         this.connection = connection;
         this.logger = logger;
+        this.hashService = hashService;
     }
 
     public User getUserById( UUID id ) {
         return null;
+    }
+
+    public User authenticate(String login, String password) throws AuthenticationException, ServerException {
+        String sql = "SELECT * FROM users join users_security " +
+                "ON users.id = users_security.user_id " +
+                "WHERE users_security.login = ?";
+
+        try(PreparedStatement ps = connection.prepareStatement(sql)) {
+            ps.setString(1, login);
+            ResultSet resultSet = ps.executeQuery();
+            if(resultSet.next()) {
+                String salt = resultSet.getString("salt");
+                String dk = resultSet.getString("dk");
+                if (hashService.digest(salt + password).equals(dk)) {
+                    return new User(resultSet);
+                }
+                else {
+                    throw  new AuthenticationException("Incorrect password");
+                }
+            }
+            else {
+                throw  new AuthenticationException("Incorrect login");
+            }
+        } catch (SQLException ex) {
+            logger.log( Level.WARNING, ex.getMessage() + " -- " + sql, ex );
+            throw new ServerException("Internal server error during authentication.", ex);
+        }
     }
 
     public User signup( UserSignupFormModel model ) {
@@ -49,6 +82,20 @@ public class UserDao {
                     new Timestamp(user.getBirthdate().getTime()));
             ps.setTimestamp(6, new Timestamp(user.getSignupDt().getTime()));
 
+            ps.executeUpdate();
+        } catch (SQLException ex) {
+            logger.log( Level.WARNING, ex.getMessage() + " -- " + sql, ex );
+            return null;
+        }
+
+        sql = "INSERT INTO users_security (user_id, login, salt, dk) VALUES (?, ?, ?, ?)";
+        String salt = hashService.digest(UUID.randomUUID().toString()).substring(0, 32);
+        String dk = hashService.digest(salt + model.getPassword());
+        try(PreparedStatement ps = connection.prepareStatement(sql)) {
+            ps.setString(1, user.getId().toString());
+            ps.setString(2, model.getEmail());
+            ps.setString(3, salt);
+            ps.setString(4, dk);
             ps.executeUpdate();
         } catch (SQLException ex) {
             logger.log( Level.WARNING, ex.getMessage() + " -- " + sql, ex );

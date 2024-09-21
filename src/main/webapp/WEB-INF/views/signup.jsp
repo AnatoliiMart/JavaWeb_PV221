@@ -1,8 +1,7 @@
 <%@ page contentType="text/html;charset=UTF-8" language="java" %>
-
 <h1>Реєстрація користувача</h1>
 
-<form class="card-panel grey lighten-5" enctype="multipart/form-data"  method="post">
+<form class="card-panel grey lighten-5" enctype="multipart/form-data"  method="post" >
     <div class="row">
         <div class="input-field col s6">
             <i class="material-icons prefix">badge</i>
