@@ -5,10 +5,8 @@ import com.google.inject.Singleton;
 import itstep.learning.services.stream.StringReader;
 import org.apache.commons.fileupload.FileItem;
 
-import java.io.File;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
+import java.io.*;
+import java.nio.file.Files;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
@@ -16,16 +14,17 @@ import java.util.UUID;
 @Singleton
 public class LocalFileService implements FileService {
     private final String uploadPath;
+
     @Inject
     public LocalFileService(StringReader stringReader) {
-        Map<String,String> ini = new HashMap<>();
-        try(InputStream rs = this.getClass().getClassLoader().getResourceAsStream("files.ini")){
+        Map<String, String> ini = new HashMap<>();
+        try (InputStream rs = this.getClass().getClassLoader().getResourceAsStream("files.ini")) {
             String content = stringReader.read(rs);
 
             String[] lines = content.split("\n");
-            for(String line : lines){
+            for (String line : lines) {
                 String[] parts = line.split("=");
-                ini.put(parts[0].trim(),parts[1].trim());
+                ini.put(parts[0].trim(), parts[1].trim());
             }
         } catch (IOException e) {
             throw new RuntimeException(e);
@@ -40,14 +39,13 @@ public class LocalFileService implements FileService {
         String extension = formFileName.substring(dotPosition);
         String filename;
         File file;
-        do{
+        do {
             filename = UUID.randomUUID() + extension;
             file = new File(uploadPath + filename);
         } while (file.exists()); // guarantee unique file name
         try {
             fileItem.write(file);
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             System.err.println(e.getMessage());
             return null;
         }
@@ -55,7 +53,11 @@ public class LocalFileService implements FileService {
     }
 
     @Override
-    public OutputStream download(String fileName) {
+    public InputStream download(String fileName) throws IOException {
+        File file = new File(this.uploadPath, fileName);
+        if (file.isFile() && file.canRead()) {
+            return Files.newInputStream(file.toPath());
+        }
         return null;
     }
 }

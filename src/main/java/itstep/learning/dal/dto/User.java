@@ -7,22 +7,22 @@ import java.util.Date;
 import java.util.UUID;
 
 public class User {
-    private UUID   id;
+    private UUID id;
     private String name;
     private String email;
     private String avatar;
-    private Date   birthdate;
-    private Date   signupDt;
-    private Date   deleteDt;
+    private Date birthdate;
+    private Date signupDt;
+    private Date deleteDt;
 
     public User() {
     }
+
     public User(ResultSet rs) throws SQLException {
-        String id ;
-        try{
-           id = rs.getString("user-id");
-        }
-        catch (Exception ignore) {
+        String id;
+        try {
+            id = rs.getString("user-id");
+        } catch (Exception ignore) {
             id = rs.getString("id");
         }
         setId(UUID.fromString(id));
@@ -30,10 +30,10 @@ public class User {
         setEmail(rs.getString("email"));
         setAvatar(rs.getString("avatar"));
         setBirthdate(rs.getDate("birthdate"));
-        setSignupDt( new Date(rs.getTimestamp("signup_dt").getTime()));
+        setSignupDt(new Date(rs.getTimestamp("signup_dt").getTime()));
         Timestamp timestamp = rs.getTimestamp("delete_dt");
         if (timestamp != null) {
-            setDeleteDt( new Date(timestamp.getTime()));
+            setDeleteDt(new Date(timestamp.getTime()));
         }
     }
 

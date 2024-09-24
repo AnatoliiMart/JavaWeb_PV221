@@ -28,6 +28,7 @@ public class AppContextListener extends GuiceServletContextListener {
 //        stringReader
         // додаткові дії при створенні контексту
     }
+
     @Override
     public void contextDestroyed(ServletContextEvent servletContextEvent) {
         super.contextDestroyed(servletContextEvent);
