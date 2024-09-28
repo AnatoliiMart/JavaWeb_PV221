@@ -31,7 +31,7 @@ public class SessionAuthFilter implements Filter {
         HttpServletResponse response = (HttpServletResponse) servletResponse;
         HttpSession session = request.getSession();
         String qs = request.getQueryString();
-        if ("logout".equals(qs)) {
+        if (qs != null && qs.matches("(^|&|\\?)logout=true($|&)")) {
             session.removeAttribute("userId");
             response.sendRedirect(request.getContextPath() + "/");
         } else {

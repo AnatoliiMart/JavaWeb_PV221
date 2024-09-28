@@ -43,4 +43,13 @@ document.addEventListener('DOMContentLoaded', function () {
             startingTop: '4%',
             endingTop: '10%',
         });
+
+    const logoutButton = document.getElementById('logoutLink');
+
+    logoutButton.addEventListener('click', function (e) {
+        e.preventDefault();
+        if (confirm('Do you really want logout?'))  {
+            window.location.href = window.location + "/?logout=true";
+        }
+    });
 });

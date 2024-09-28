@@ -37,10 +37,10 @@
             </ul>
             <% if (isAuthenticated) { %>
             <img src="<%=contextPath%>/file/<%=avatar%>"
-                 alt="avtar"
+                 alt="avatar"
                  title="<%=userName%>"
                  class="nav-addon right nav-avatar">
-            <a class="right nav-addon modal-trigger" href="<%=contextPath%>/?logout"><i
+            <a class="right nav-addon modal-trigger" id="logoutLink" href="#"><i
                     class="material-icons">logout</i></a>
             <% } else { %>
             <a class="right nav-addon" href="<%=contextPath%>/signup">
