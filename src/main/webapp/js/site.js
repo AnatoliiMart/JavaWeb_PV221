@@ -46,10 +46,13 @@ document.addEventListener('DOMContentLoaded', function () {
 
     const logoutButton = document.getElementById('logoutLink');
 
-    logoutButton.addEventListener('click', function (e) {
-        e.preventDefault();
-        if (confirm('Do you really want logout?'))  {
-            window.location.href = window.location + "/?logout=true";
-        }
-    });
+    if (logoutButton !== null) {
+        logoutButton.addEventListener('click', function (e) {
+            e.preventDefault();
+            if (confirm('Do you really want logout?'))  {
+                window.location.href = window.location + "/?logout=true";
+            }
+        });
+    }
+
 });

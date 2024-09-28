@@ -39,6 +39,41 @@ public class TokenDao {
         }
     }
 
+    public Token getNotExpiredTokenByUserId(UUID userId) throws SQLException {
+        Token token = new Token();
+        token.setUserId(userId);
+        String sql = "SELECT * FROM tokens WHERE user_id = ? AND exp > ?";
+        try (PreparedStatement ps = connection.prepareStatement(sql)) {
+            ps.setString(1, userId.toString());
+            ps.setTimestamp(2, new Timestamp(System.currentTimeMillis()));
+            ResultSet rs = ps.executeQuery();
+
+            if (rs.next()) {
+                token.setTokenId(UUID.fromString(rs.getString("token_id")));
+                token.setUserId(UUID.fromString(rs.getString("user_id")));
+                token.setIat(rs.getTimestamp("iat"));
+                token.setExp(rs.getTimestamp("exp"));
+
+                long currentTime = System.currentTimeMillis();
+                long remainingTimeMillis = token.getExp().getTime() - currentTime;
+
+                if (remainingTimeMillis > 0) {
+                    long additionalTimeMillis = Math.round((1000 * 60 * 5) / 2.0);
+                    token.setExp(new Date(currentTime + additionalTimeMillis));
+
+                    String updateSql = "UPDATE tokens SET exp = ? WHERE token_id = ?";
+                    try (PreparedStatement updatePs = connection.prepareStatement(updateSql)) {
+                        updatePs.setTimestamp(1, new Timestamp(token.getExp().getTime()));
+                        updatePs.setString(2, token.getTokenId().toString());
+                        updatePs.executeUpdate();
+                    }
+                    return token;
+                }
+            }
+        }
+        return null;
+    }
+
 
     public boolean installTables() {
         String sql =

@@ -56,7 +56,14 @@ public class AuthServlet extends HttpServlet {
         String[] parts = credentials.split(":", 2);
         try {
             User user = userDao.authenticate(parts[0], parts[1]);
-            Token token = tokenDao.createToken(user);
+            Token token = tokenDao.getNotExpiredTokenByUserId(user.getId());
+            if (token == null) {
+                token = tokenDao.createToken(user);
+                logger.info("Created new token: " + token);
+            }
+            else{
+                logger.info("Token prolongation: " + token);
+            }
             SendRestResponse(resp, token);
         } catch (AuthenticationException | SQLException e) {
             logger.warning(e.getMessage());
