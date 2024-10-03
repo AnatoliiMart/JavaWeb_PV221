@@ -20,6 +20,27 @@ public class TokenDao {
         this.connection = connection;
     }
 
+    public User getUserByTokenId( UUID tokenId ) throws Exception {
+        String sql = "SELECT * FROM tokens t JOIN users u ON t.user_id = u.id WHERE t.token_id = ?";
+        try( PreparedStatement prep = connection.prepareStatement(sql) ) {
+            prep.setString( 1, tokenId.toString() );
+            ResultSet rs = prep.executeQuery();
+            if( rs.next() ) {
+                Token token = new Token( rs );
+                if( token.getExp().before( new Date() ) ) {
+                    throw new Exception( "Token expired" ) ;
+                }
+                return new User( rs );
+            }
+            else {
+                throw new Exception( "Token rejected" ) ;
+            }
+        }
+        catch( SQLException ex ) {
+            logger.log( Level.WARNING, ex.getMessage() + " -- " + sql, ex );
+            throw new Exception( "Server error. Details on server logs" ) ;
+        }
+    }
 
     public Token createToken(User user) throws SQLException {
 
@@ -27,7 +48,7 @@ public class TokenDao {
         token.setTokenId(UUID.randomUUID());
         token.setUserId(user.getId());
         token.setIat(new Date(System.currentTimeMillis()));
-        token.setExp(new Date(System.currentTimeMillis() + 1000 * 60 * 5));
+        token.setExp(new Date(System.currentTimeMillis() + 1000 * 60 * 60 * 3));
         String sql = "INSERT INTO tokens (token_id, user_id, iat, exp) VALUES (?, ?, ?, ?)";
         try (PreparedStatement ps = connection.prepareStatement(sql)) {
             ps.setString(1, token.getTokenId().toString());
@@ -58,7 +79,7 @@ public class TokenDao {
                 long remainingTimeMillis = token.getExp().getTime() - currentTime;
 
                 if (remainingTimeMillis > 0) {
-                    long additionalTimeMillis = Math.round((1000 * 60 * 5) / 2.0);
+                    long additionalTimeMillis = Math.round((1000 * 60 * 60 * 3) / 2.0);
                     token.setExp(new Date(currentTime + additionalTimeMillis));
 
                     String updateSql = "UPDATE tokens SET exp = ? WHERE token_id = ?";
