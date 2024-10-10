@@ -277,20 +277,39 @@ function Product({id}) {
     </div>;
 }
 
-function CategoriesList() {
+function CategoriesList({mode}) {
     const {state, dispatch} = React.useContext(StateContext);
-    return <div>
-        {state.shop.categories.map(c =>
-            <div key={c.id}
-                 className="shop-category"
-                 onClick={() => dispatch({type: 'navigate', payload: 'category/' + c.id})}>
-                <b>{c.name}</b>
-                <picture>
-                    <img src={"file/" + c.imageUrl} alt="grp"/>
-                </picture>
-                <p>{c.description}</p>
-            </div>)}
-    </div>;
+    switch (mode) {
+        case "table":
+            return (
+                <div>
+                    {state.shop.categories.map(c =>
+                        <div key={c.id}
+                             className="shop-category"
+                             onClick={() => dispatch({type: 'navigate', payload: 'category/' + c.id})}>
+                            <b>{c.name}</b>
+                            <picture>
+                                <img src={"file/" + c.imageUrl} alt="grp"/>
+                            </picture>
+                            <p>{c.description}</p>
+                        </div>)}
+                </div>
+            )
+        case "ribbon":
+            return (
+                <div className="ribbon">
+                    {state.shop.categories.map(c =>
+                        <div key={c.id}
+                             className="shop-category-ribbon"
+                             onClick={() => dispatch({type: 'navigate', payload: 'category/' + c.id})}>
+                            <picture>
+                                <img src={"file/" + c.imageUrl} alt="grp"/>
+                            </picture>
+                            <b>{c.name}</b>
+                        </div>)}
+                </div>
+            )
+    }
 }
 
 function Shop({isAdmin}) {
@@ -332,7 +351,7 @@ function Home() {
     return <React.Fragment>
         <h2>Home</h2>
         <b onClick={() => dispatch({type: "navigate", payload: "shop"})}>To the Admin</b>
-        <CategoriesList/>
+        <CategoriesList mode="table"/>
     </React.Fragment>
 }
 

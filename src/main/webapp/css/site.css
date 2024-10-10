@@ -77,3 +77,19 @@ body {
 .spa-auth h3{
      margin-left: 15px;
 }
+.ribbon{
+    display: flex;
+    align-items: center;
+    justify-content: space-evenly;
+    flex-direction: row;
+}
+.shop-category-ribbon{
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 15px;
+}
+.shop-category-ribbon img{
+    width: 60px;
+}
