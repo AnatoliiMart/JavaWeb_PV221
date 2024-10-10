@@ -176,7 +176,7 @@ function Spa() {
             <b onClick={() => navigate("shop")}>Shop</b>
             {state.page === "home" && <Home/>}
             {state.page === "shop" && <Shop isAdmin={isAdmin}/>}
-            {state.page.startsWith('category/') && <Category id={state.page.substring(9)}/>}
+            {state.page.startsWith('category/') && <Category id={state.page.substring(9)} isAdmin={isAdmin}/>}
             {state.page.startsWith('product/') && <Product id={state.page.substring(8)}/>}
         </div>
 
@@ -184,7 +184,7 @@ function Spa() {
     </StateContext.Provider>;
 }
 
-function Category({id}) {
+function Category({id, isAdmin}) {
     const {state, dispatch} = React.useContext(StateContext)
 
     const [products, setProducts] = React.useState([]);
@@ -234,7 +234,7 @@ function Category({id}) {
             <p><strong>{p.price}</strong> <small>{p.description}</small></p>
         </div>)}
         <br/>
-        {state.auth.token &&
+        {state.auth.token && !isAdmin &&
             <form id="add-product-form" onSubmit={addProduct} encType="multipart/form-data">
                 <input name="product-name" placeholder="Name"/>
                 <input name="product-slug" placeholder="Slug"/> <br/>
