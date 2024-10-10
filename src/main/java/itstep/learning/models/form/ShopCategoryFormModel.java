@@ -4,9 +4,18 @@ public class ShopCategoryFormModel {
     private String name;
     private String description;
     private String savedFilename;
+    private String slug;
 
+    public String getSlug() {
+        return slug;
+    }
 
-    public  String getName() {
+    public ShopCategoryFormModel setSlug(String slug) {
+        this.slug = slug;
+        return this;
+    }
+
+    public String getName() {
         return name;
     }
 

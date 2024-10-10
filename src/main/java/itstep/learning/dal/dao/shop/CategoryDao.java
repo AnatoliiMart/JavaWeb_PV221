@@ -21,14 +21,30 @@ public class CategoryDao {
         this.connection = connection;
     }
 
+    public boolean isSlugFree(String slug) {
+        String sql = "SELECT COUNT(*) FROM categories c WHERE c.category_slug = ?";
+        try(PreparedStatement statement = connection.prepareStatement(sql)) {
+            statement.setString(1, slug);
+            ResultSet resultSet = statement.executeQuery();
+            if(resultSet.next()) {
+                return resultSet.getInt(1) == 0;
+            }
+
+        } catch (SQLException e) {
+            logger.log(Level.WARNING, e.getMessage() + " -- " + sql, e);
+        }
+        return false;
+    }
+
     public boolean installTables() {
         String sql =
                 "CREATE TABLE IF NOT EXISTS categories (" +
-                        "category_id CHAR(36)     PRIMARY KEY  DEFAULT( UUID() )," +
-                        "name        VARCHAR(128) NOT NULL," +
-                        "image_url   VARCHAR(512) NOT NULL," +
-                        "description TEXT         NULL, " +
-                        "delete_dt   DATETIME     NULL  " +
+                        "category_id   CHAR(36)     PRIMARY KEY  DEFAULT( UUID() )," +
+                        "name          VARCHAR(128) NOT NULL," +
+                        "image_url     VARCHAR(512) NOT NULL," +
+                        "description   TEXT         NULL, " +
+                        "category_slug VARCHAR(64)  NULL, " +
+                        "delete_dt     DATETIME     NULL  " +
                         ") ENGINE = InnoDB, DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci";
 
         try (Statement stmt = connection.createStatement()) {
@@ -40,18 +56,20 @@ public class CategoryDao {
         }
     }
 
-    public Category createCategory(ShopCategoryFormModel model) {
+    public Category add(ShopCategoryFormModel model) {
         Category category = new Category()
                 .setId(UUID.randomUUID())
                 .setName(model.getName())
                 .setDescription(model.getDescription())
-                .setImageUrl(model.getSavedFilename());
-        String sql = "INSERT INTO categories (category_id, name, image_url, description) VALUES (?, ?, ?, ?)";
+                .setImageUrl(model.getSavedFilename())
+                .setSlug(model.getSlug());
+        String sql = "INSERT INTO categories (category_id, name, image_url, description, category_slug) VALUES (?, ?, ?, ?, ?)";
         try (PreparedStatement stmt = connection.prepareStatement(sql)) {
             stmt.setString(1, category.getId().toString());
             stmt.setString(2, category.getName());
             stmt.setString(3, category.getImageUrl());
             stmt.setString(4, category.getDescription());
+            stmt.setString(5, category.getSlug());
             stmt.executeUpdate();
             return category;
 

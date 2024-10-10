@@ -11,6 +11,17 @@ public class Category {
     private String name;
     private String description;
     private String imageUrl;
+    private String slug;
+
+    public String getSlug() {
+        return slug;
+    }
+
+    public Category setSlug(String slug) {
+        this.slug = slug;
+        return this;
+    }
+
     private Date deleteDt;
 
     public Category() {
@@ -21,7 +32,8 @@ public class Category {
         this.setId(UUID.fromString(resultSet.getString("category_id")))
                 .setName(resultSet.getString("name"))
                 .setDescription(resultSet.getString("description"))
-                .setImageUrl(resultSet.getString("image_url"));
+                .setImageUrl(resultSet.getString("image_url"))
+                .setSlug(resultSet.getString("category_slug"));
         Timestamp timestamp = resultSet.getTimestamp("delete_dt");
         if (timestamp != null) {
             this.setDeleteDt(new Date(timestamp.getTime()));

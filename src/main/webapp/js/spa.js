@@ -11,6 +11,7 @@
 function reducer(state = initialState, action) {
     switch (action.type) {
         case 'navigate' :
+            window.location.hash = action.payload
             return {
                 ...state,
                 page: action.payload
@@ -45,6 +46,7 @@ function Spa() {
     const [password, setPassword] = React.useState("");
     const [error, setError] = React.useState(false);
     const [isAuth, setAuth] = React.useState(false);
+    const [isAdmin, setAdmin] = React.useState(false);
     const [resource, setResource] = React.useState("");
     const loginChange = React.useCallback((e) => setLogin(e.target.value));
     const passwordChange = React.useCallback((e) => setPassword(e.target.value));
@@ -58,7 +60,8 @@ function Spa() {
             }
         }).then(r => r.json())
             .then(j => {
-                if (j.status === "Ok") {
+                console.log(j);
+                if (j.status.phrase === "Ok") {
                     window.sessionStorage.setItem("token221", JSON.stringify(j.data));
                     fetch("spa", {
                         method: 'POST',
@@ -67,8 +70,11 @@ function Spa() {
                         }
                     }).then(r => r.json())
                         .then(j => {
+                            console.log(j);
                             window.sessionStorage.setItem("userName", JSON.stringify(j.data.name));
                             window.sessionStorage.setItem("userAvatar", JSON.stringify(j.data.avatar));
+                            window.sessionStorage.setItem("userRole", JSON.stringify(j.data.role));
+                            setAdmin(j.data.role.roleName === "Admin")
                         });
                     setAuth(true);
                 } else {
@@ -113,11 +119,28 @@ function Spa() {
             setAuth(false);
         }
     });
-    React.useEffect(() => {
-        checkToken();
-        const interval = setInterval(checkToken, 1000);
+    const hashChanged = React.useCallback(() => {
+        const hash = window.location.hash;
+        if (hash.length > 1) {
+            dispatch({type: 'navigate', payload: hash.substring(1)});
+        }
+    });
 
-        return () => clearInterval(interval);
+    React.useEffect(() => {
+        hashChanged();
+        checkToken();
+        window.addEventListener('hashchange', hashChanged);
+        const interval = setInterval(checkToken, 1000);
+        if (state.shop.categories.length === 0) {
+            fetch("shop/category")
+                .then(r => r.json())
+                .then(j => dispatch({type: 'setCategory', payload: j.data}));
+        }
+
+        return () => {
+            clearInterval(interval);
+            window.removeEventListener('hashchange', hashChanged);
+        }
     }, []);
     const navigate = React.useCallback((route) => {
         const action = {type: "navigate", payload: route};
@@ -152,8 +175,9 @@ function Spa() {
             <b onClick={() => navigate("home")}>Home</b>
             <b onClick={() => navigate("shop")}>Shop</b>
             {state.page === "home" && <Home/>}
-            {state.page === "shop" && <Shop/>}
+            {state.page === "shop" && <Shop isAdmin={isAdmin}/>}
             {state.page.startsWith('category/') && <Category id={state.page.substring(9)}/>}
+            {state.page.startsWith('product/') && <Product id={state.page.substring(8)}/>}
         </div>
 
     }
@@ -162,6 +186,18 @@ function Spa() {
 
 function Category({id}) {
     const {state, dispatch} = React.useContext(StateContext)
+
+    const [products, setProducts] = React.useState([]);
+    const loadProducts = React.useCallback(() => {
+        fetch("shop/product?categoryId=" + id)
+            .then(r => r.json())
+            .then(j => {
+                setProducts(j.data);
+            });
+    });
+    React.useEffect(() => {
+        loadProducts();
+    }, []);
     const addProduct = React.useCallback((e) => {
 
         e.preventDefault();
@@ -174,15 +210,34 @@ function Category({id}) {
                 "Authorization": `Bearer ` + state.auth.token.tokenId,
             },
             body: formData
-        }).then(r => r.json()).then(console.log)
+        }).then(r => r.json())
+            .then(j => {
+                if (j.status === "Ok") {
+                    loadProducts();
+                    document.getElementById("add-product-form").reset();
+                } else {
+                    alert(j.data);
+                }
+            });
     })
     return <div>
         Category: {id} <br/>
         <b onClick={() => dispatch({type: "navigate", payload: 'home'})}>To the shop</b>
-
+        <br/>
+        {products.map(p => <div key={p.id}
+                                className="shop-product"
+                                onClick={() => dispatch({type: 'navigate', payload: 'product/' + (p.slug || p.id)})}>
+            <b>{p.name}</b>
+            <picture>
+                <img src={"file/" + p.imageUrl} alt="prod"/>
+            </picture>
+            <p><strong>{p.price}</strong> <small>{p.description}</small></p>
+        </div>)}
+        <br/>
         {state.auth.token &&
-            <form onSubmit={addProduct} encType="multipart/form-data">
-                <input name="product-name" placeholder="Name"/> <br/>
+            <form id="add-product-form" onSubmit={addProduct} encType="multipart/form-data">
+                <input name="product-name" placeholder="Name"/>
+                <input name="product-slug" placeholder="Slug"/> <br/>
                 <input name="product-price" type="number" step="0.01" placeholder="Price"/> <br/>
                 Image: <input type="file" name="product-img"/>
                 <textarea name="product-description" placeholder="Description"></textarea>
@@ -194,7 +249,51 @@ function Category({id}) {
     </div>;
 }
 
-function Shop() {
+function Product({id}) {
+    const [product, setProduct] = React.useState(null);
+    React.useEffect(() => {
+        fetch("shop/product?id=" + id)
+            .then(r => r.json())
+            .then(j => {
+                if (j.status === "Ok") {
+                    setProduct(j.data);
+                } else {
+                    console.error(j.data);
+                    setProduct(null);
+                }
+            });
+    }, [id]);
+    return <div>
+        <h1>Сторінка товару</h1>
+        {product && <div>
+            <p>{product.name}</p>
+        </div>}
+
+        {!product && <div>
+            <p>Шукаємо...</p>
+        </div>}
+        <hr/>
+        <CategoriesList/>
+    </div>;
+}
+
+function CategoriesList() {
+    const {state, dispatch} = React.useContext(StateContext);
+    return <div>
+        {state.shop.categories.map(c =>
+            <div key={c.id}
+                 className="shop-category"
+                 onClick={() => dispatch({type: 'navigate', payload: 'category/' + c.id})}>
+                <b>{c.name}</b>
+                <picture>
+                    <img src={"file/" + c.imageUrl} alt="grp"/>
+                </picture>
+                <p>{c.description}</p>
+            </div>)}
+    </div>;
+}
+
+function Shop({isAdmin}) {
     const addCategory = React.useCallback((e) => {
         e.preventDefault();
 
@@ -207,12 +306,16 @@ function Shop() {
     });
     return <React.Fragment>
         <h2>Shop</h2>
-        <form onSubmit={addCategory} encType="multipart/form-data">
-            <input name="category-name" placeholder="Category"/>
-            Image: <input type="file" name="category-img"/>
-            <textarea name="category-description" placeholder="Description"></textarea>
-            <button type="submit">Add</button>
-        </form>
+        {!isAdmin &&
+            <form onSubmit={addCategory} encType="multipart/form-data">
+                <input name="category-name" placeholder="Category"/>
+                <input name="category-slug" placeholder="Slug"/>
+                Image: <input type="file" name="category-img"/>
+                <textarea name="category-description" placeholder="Description"></textarea>
+                <button type="submit">Add</button>
+            </form>
+        }
+
     </React.Fragment>
 }
 
@@ -228,18 +331,8 @@ function Home() {
     }, [])
     return <React.Fragment>
         <h2>Home</h2>
-        <b onClick={() => dispatch({type: "navigate", payload: "shop"})}>To the Shop</b>
-        <div>
-            {state.shop.categories.map(c =>
-                <div key={c.id} className="shop-category"
-                     onClick={() => dispatch({type: "navigate", payload: 'category/' + c.id})}>
-                    <b>{c.name}</b>
-                    <picture>
-                        <img src={`file/${c.imageUrl}`} alt=""/>
-                    </picture>
-                    <p>{c.description}</p>
-                </div>)}
-        </div>
+        <b onClick={() => dispatch({type: "navigate", payload: "shop"})}>To the Admin</b>
+        <CategoriesList/>
     </React.Fragment>
 }
 

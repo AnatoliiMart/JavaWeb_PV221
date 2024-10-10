@@ -3,9 +3,11 @@ package itstep.learning.servlets;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import com.google.inject.name.Named;
+import itstep.learning.dal.dao.RoleDao;
 import itstep.learning.dal.dao.TokenDao;
 import itstep.learning.dal.dao.UserDao;
 import itstep.learning.dal.dao.shop.CategoryDao;
+import itstep.learning.dal.dao.shop.ProductDao;
 import itstep.learning.services.hash.HashService;
 
 import javax.servlet.ServletException;
@@ -22,14 +24,18 @@ public class HomeServlet extends HttpServlet {
     private final UserDao userDao;
     private final TokenDao tokenDao;
     private final CategoryDao categoryDao;
+    private final ProductDao productDao;
+    private final RoleDao roleDao;
 
     @Inject
-    public HomeServlet(@Named("signature") HashService signatureService, Connection connection, UserDao userDao, TokenDao tokenDao, CategoryDao categoryDao) {
+    public HomeServlet(@Named("signature") HashService signatureService, Connection connection, UserDao userDao, TokenDao tokenDao, CategoryDao categoryDao, ProductDao productDao, RoleDao roleDao) {
         this.signatureService = signatureService;
         this.connection = connection;
         this.userDao = userDao;
         this.tokenDao = tokenDao;
         this.categoryDao = categoryDao;
+        this.productDao = productDao;
+        this.roleDao = roleDao;
     }
 
     @Override
@@ -38,7 +44,9 @@ public class HomeServlet extends HttpServlet {
         req.setAttribute("hash",
                 userDao.installTables() &&
                         tokenDao.installTables() &&
-                        categoryDao.installTables()
+                        categoryDao.installTables() &&
+                        productDao.installTables() &&
+                        roleDao.installTables()
                         ? "Ok" : "Failed");
         req.setAttribute("checkControl", (boolean) req.getAttribute("control") ? "Control Pass" : "Control Reject");
         // ~ return View()

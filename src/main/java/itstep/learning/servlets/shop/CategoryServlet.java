@@ -35,6 +35,13 @@ public class CategoryServlet extends HttpServlet {
     protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
         FormParseResult formParseResult = formParseService.parse(req);
         String name = formParseResult.getFields().get("category-name");
+
+        String slug = formParseResult.getFields().get("category-slug");
+        if (!categoryDao.isSlugFree(slug) && slug != null) {
+            restService.sendRestError(resp, "Slug '" + slug + "' is not free");
+            return;
+        }
+
         if (name == null || name.isEmpty()) {
             restService.sendRestError(resp, "Missing required field \"category-name\"");
             return;
@@ -51,13 +58,15 @@ public class CategoryServlet extends HttpServlet {
         } else {
             restService.sendRestError(resp, "Missing required field \"category-img\"");
         }
+
         System.out.println(uploadedName);
         restService.sendRestResponse(resp,
-                categoryDao.createCategory(
+                categoryDao.add(
                         new ShopCategoryFormModel()
                                 .setName(name)
                                 .setDescription(description)
                                 .setSavedFilename(uploadedName)
+                                .setSlug(slug)
                 )
         );
     }

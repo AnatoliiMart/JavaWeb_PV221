@@ -1,6 +1,7 @@
 package itstep.learning.dal.dao;
 
 import com.google.inject.Inject;
+import itstep.learning.dal.dto.Role;
 import itstep.learning.dal.dto.Token;
 import itstep.learning.dal.dto.User;
 
@@ -21,7 +22,7 @@ public class TokenDao {
     }
 
     public User getUserByTokenId( UUID tokenId ) throws Exception {
-        String sql = "SELECT * FROM tokens t JOIN users u ON t.user_id = u.id WHERE t.token_id = ?";
+        String sql = "SELECT * FROM tokens t JOIN users u ON t.user_id = u.id join users_security us on u.id = us.user_id  WHERE t.token_id = ?";
         try( PreparedStatement prep = connection.prepareStatement(sql) ) {
             prep.setString( 1, tokenId.toString() );
             ResultSet rs = prep.executeQuery();
@@ -30,7 +31,17 @@ public class TokenDao {
                 if( token.getExp().before( new Date() ) ) {
                     throw new Exception( "Token expired" ) ;
                 }
-                return new User( rs );
+                String roleSql = "SELECT * FROM user_roles r WHERE r.role_id = ?";
+                try (PreparedStatement pss = connection.prepareStatement(roleSql)) {
+                    pss.setString(1, rs.getString("role_id"));
+                    ResultSet resultSet2 = pss.executeQuery();
+                    if (resultSet2.next()) {
+                        Role role = new Role(resultSet2);
+                        return new User(rs, role);
+                    } else {
+                        return new User(rs);
+                    }
+                }
             }
             else {
                 throw new Exception( "Token rejected" ) ;

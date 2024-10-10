@@ -11,6 +11,7 @@ public class User {
     private String name;
     private String email;
     private String avatar;
+    private Role role;
     private Date birthdate;
     private Date signupDt;
     private Date deleteDt;
@@ -18,6 +19,25 @@ public class User {
     public User() {
     }
 
+    public User(ResultSet rs, Role role) throws SQLException {
+        String id;
+        try {
+            id = rs.getString("user-id");
+        } catch (Exception ignore) {
+            id = rs.getString("id");
+        }
+        setId(UUID.fromString(id));
+        setName(rs.getString("name"));
+        setEmail(rs.getString("email"));
+        setAvatar(rs.getString("avatar"));
+        setBirthdate(rs.getDate("birthdate"));
+        setSignupDt(new Date(rs.getTimestamp("signup_dt").getTime()));
+        setRole(role);
+        Timestamp timestamp = rs.getTimestamp("delete_dt");
+        if (timestamp != null) {
+            setDeleteDt(new Date(timestamp.getTime()));
+        }
+    }
     public User(ResultSet rs) throws SQLException {
         String id;
         try {
@@ -35,6 +55,13 @@ public class User {
         if (timestamp != null) {
             setDeleteDt(new Date(timestamp.getTime()));
         }
+    }
+    public Role getRole() {
+        return role;
+    }
+
+    public void setRole(Role role) {
+        this.role = role;
     }
 
     public UUID getId() {
