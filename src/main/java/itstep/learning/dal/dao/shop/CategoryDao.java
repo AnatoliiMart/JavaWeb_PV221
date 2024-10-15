@@ -1,6 +1,7 @@
 package itstep.learning.dal.dao.shop;
 
 import com.google.inject.Inject;
+import com.google.inject.Singleton;
 import itstep.learning.dal.dto.shop.Category;
 import itstep.learning.models.form.ShopCategoryFormModel;
 
@@ -11,6 +12,7 @@ import java.util.UUID;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+@Singleton
 public class CategoryDao {
     private final Logger logger;
     private final Connection connection;
@@ -43,8 +45,8 @@ public class CategoryDao {
                         "name          VARCHAR(128) NOT NULL," +
                         "image_url     VARCHAR(512) NOT NULL," +
                         "description   TEXT         NULL, " +
-                        "category_slug VARCHAR(64)  NULL, " +
-                        "delete_dt     DATETIME     NULL  " +
+                        "category_slug VARCHAR(64)  NULL, UNIQUE (category_slug)," +
+                        "delete_dt     DATETIME     NULL" +
                         ") ENGINE = InnoDB, DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci";
 
         try (Statement stmt = connection.createStatement()) {
@@ -92,5 +94,32 @@ public class CategoryDao {
             return null;
         }
         return categories;
+    }
+    public Category getCategoryByIdOrSlug(String id ) {
+        // id - або slug, або id. Перевіряємо шляхом перетворення до UUID
+        if (id == null || id.isEmpty())
+            return null;
+
+        String sql = "SELECT * FROM categories WHERE ";
+        try {
+            UUID.fromString( id );
+            // шукаємо як id
+            sql += "category_id = ?";
+        }
+        catch( IllegalArgumentException ignored ) {
+            // шукаємо як slug
+            sql += "category_slug = ?";
+        }
+        try( PreparedStatement prep = connection.prepareStatement( sql ) ) {
+            prep.setString( 1, id );
+            ResultSet rs = prep.executeQuery();
+            if( rs.next() ) {
+                return new Category( rs ) ;
+            }
+        }
+        catch( SQLException ex ) {
+            logger.log( Level.WARNING, ex.getMessage() + " -- " + sql, ex );
+        }
+        return null;
     }
 }

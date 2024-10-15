@@ -6,6 +6,7 @@ import com.google.inject.name.Named;
 import itstep.learning.dal.dao.RoleDao;
 import itstep.learning.dal.dao.TokenDao;
 import itstep.learning.dal.dao.UserDao;
+import itstep.learning.dal.dao.shop.CartDao;
 import itstep.learning.dal.dao.shop.CategoryDao;
 import itstep.learning.dal.dao.shop.ProductDao;
 import itstep.learning.services.hash.HashService;
@@ -15,27 +16,26 @@ import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
-import java.sql.Connection;
 
 @Singleton
 public class HomeServlet extends HttpServlet {
     private final HashService signatureService;
-    private final Connection connection;
     private final UserDao userDao;
     private final TokenDao tokenDao;
     private final CategoryDao categoryDao;
     private final ProductDao productDao;
     private final RoleDao roleDao;
+    private final CartDao cartDao;
 
     @Inject
-    public HomeServlet(@Named("signature") HashService signatureService, Connection connection, UserDao userDao, TokenDao tokenDao, CategoryDao categoryDao, ProductDao productDao, RoleDao roleDao) {
+    public HomeServlet(@Named("signature") HashService signatureService, UserDao userDao, TokenDao tokenDao, CategoryDao categoryDao, ProductDao productDao, RoleDao roleDao, CartDao cartDao) {
         this.signatureService = signatureService;
-        this.connection = connection;
         this.userDao = userDao;
         this.tokenDao = tokenDao;
         this.categoryDao = categoryDao;
         this.productDao = productDao;
         this.roleDao = roleDao;
+        this.cartDao = cartDao;
     }
 
     @Override
@@ -46,7 +46,8 @@ public class HomeServlet extends HttpServlet {
                         tokenDao.installTables() &&
                         categoryDao.installTables() &&
                         productDao.installTables() &&
-                        roleDao.installTables()
+                        roleDao.installTables() &&
+                        cartDao.installTables()
                         ? "Ok" : "Failed");
         req.setAttribute("checkControl", (boolean) req.getAttribute("control") ? "Control Pass" : "Control Reject");
         // ~ return View()

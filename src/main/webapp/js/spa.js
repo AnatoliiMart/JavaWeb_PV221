@@ -1,4 +1,40 @@
-﻿const initialState = {
+﻿const env = {
+    apiHost: "http://localhost:8080/Java221/"
+}
+
+function request(url, params) {
+    if (!url.startsWith(env.apiHost)) {
+        url = env.apiHost + url;
+    }
+    /*    if (typeof params !== "undefined"){
+            params = {
+                ...params,
+                headers: {
+                    Authorization: `Bearer` + stat
+                }
+
+            };
+        }else if(typeof params.headers.Authorization !== "undefined") {}*/
+    return new Promise((resolve, reject) => {
+
+        fetch(url, params)
+            .then(r => {
+                if (r.headers.get("Content-Type").startsWith("application/json") && r.ok) {
+                    return r.json();
+                }
+            })
+            .then(j => {
+                if (j.status.isSuccessful) {
+                    resolve(j.data)
+                } else {
+                    reject(j.data)
+                }
+            })
+    })
+
+}
+
+const initialState = {
     auth: {
         token: null,
     },
@@ -53,7 +89,7 @@ function Spa() {
     const authClick = React.useCallback(() => {
 
         const credentials = btoa(login + ":" + password);
-        fetch("auth", {
+        fetch(`${env.apiHost}auth`, {
             method: 'GET',
             headers: {
                 'Authorization': 'Basic ' + credentials
@@ -61,7 +97,7 @@ function Spa() {
         }).then(r => r.json())
             .then(j => {
                 console.log(j);
-                if (j.status.phrase === "Ok") {
+                if (j.status.isSuccessful) {
                     window.sessionStorage.setItem("token221", JSON.stringify(j.data));
                     fetch("spa", {
                         method: 'POST',
@@ -70,11 +106,12 @@ function Spa() {
                         }
                     }).then(r => r.json())
                         .then(j => {
-                            console.log(j);
+
                             window.sessionStorage.setItem("userName", JSON.stringify(j.data.name));
                             window.sessionStorage.setItem("userAvatar", JSON.stringify(j.data.avatar));
                             window.sessionStorage.setItem("userRole", JSON.stringify(j.data.role));
                             setAdmin(j.data.role.roleName === "Admin")
+                            window.location.reload();
                         });
                     setAuth(true);
                 } else {
@@ -84,6 +121,7 @@ function Spa() {
     });
     const exitClick = React.useCallback(() => {
         window.sessionStorage.removeItem("token221");
+        window.sessionStorage.removeItem("userRole");
         setAuth(false);
     });
     const resourceClick = React.useCallback(() => {
@@ -162,7 +200,7 @@ function Spa() {
         </div>
         {!isAuth &&
             <div>
-                <b>Логін</b><input onChange={loginChange}/><br/>
+                <b>Логін</b><input name="login_input" onChange={loginChange}/><br/>
                 <b>Пароль</b><input type="password" onChange={passwordChange}/><br/>
                 <button onClick={authClick}>Одержати токен</button>
                 {error && <b>{error}</b>}
@@ -186,24 +224,26 @@ function Spa() {
 
 function Category({id, isAdmin}) {
     const {state, dispatch} = React.useContext(StateContext)
-
+    const role = JSON.parse(window.sessionStorage.getItem("userRole"));
     const [products, setProducts] = React.useState([]);
     const loadProducts = React.useCallback(() => {
-        fetch("shop/product?categoryId=" + id)
-            .then(r => r.json())
-            .then(j => {
-                setProducts(j.data);
-            });
+        request(`shop/product?categoryId=${id}`)
+            .then(setProducts)
+            .catch(err => {
+                console.log(err);
+                setProducts([]);
+            })
+        console.log(role)
     });
     React.useEffect(() => {
         loadProducts();
-    }, []);
+    }, [id]);
     const addProduct = React.useCallback((e) => {
 
         e.preventDefault();
         const formData = new FormData(e.target);
         console.log(state.auth.token)
-        fetch("shop/product", {
+        fetch(`${env.apiHost}shop/product`, {
 
             method: 'POST',
             headers: {
@@ -212,7 +252,7 @@ function Category({id, isAdmin}) {
             body: formData
         }).then(r => r.json())
             .then(j => {
-                if (j.status === "Ok") {
+                if (j.status.isSuccessful) {
                     loadProducts();
                     document.getElementById("add-product-form").reset();
                 } else {
@@ -220,47 +260,93 @@ function Category({id, isAdmin}) {
                 }
             });
     })
+    const addToCart = React.useCallback((id) => {
+        console.log(id);
+        const userId = state.auth.token.userId;
+        //TODO: check presence
+        request(`shop/cart`, {
+            method: 'POST',
+            headers: {
+                Authorization: 'Bearer ' + state.auth.token.tokenId,
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                userId,
+                productId: id,
+            })
+        })
+            .then(console.log)
+            .catch(console.log)
+    })
     return <div>
-        Category: {id} <br/>
-        <b onClick={() => dispatch({type: "navigate", payload: 'home'})}>To the shop</b>
-        <br/>
-        {products.map(p => <div key={p.id}
-                                className="shop-product"
-                                onClick={() => dispatch({type: 'navigate', payload: 'product/' + (p.slug || p.id)})}>
-            <b>{p.name}</b>
-            <picture>
-                <img src={"file/" + p.imageUrl} alt="prod"/>
-            </picture>
-            <p><strong>{p.price}</strong> <small>{p.description}</small></p>
-        </div>)}
-        <br/>
-        {state.auth.token && !isAdmin &&
-            <form id="add-product-form" onSubmit={addProduct} encType="multipart/form-data">
-                <input name="product-name" placeholder="Name"/>
-                <input name="product-slug" placeholder="Slug"/> <br/>
-                <input name="product-price" type="number" step="0.01" placeholder="Price"/> <br/>
-                Image: <input type="file" name="product-img"/>
-                <textarea name="product-description" placeholder="Description"></textarea>
-                <input type="hidden" name="product-category-id" value={id}/>
-                <button type="submit">Add</button>
-            </form>
-
-        }
+        {products && <div>
+            Category: {id}<br/>
+            <b onClick={() => dispatch({type: 'navigate', payload: 'home'})}>До Крамниці</b>
+            <br/>
+            {products.map(p => <div key={p.id}
+                                    className="shop-product"
+                                    onClick={() => dispatch({
+                                        type: 'navigate',
+                                        payload: 'product/' + (p.slug || p.id)
+                                    })}>
+                <b>{p.name}</b>
+                <picture>
+                    <img src={"file/" + p.imageUrl} alt="prod"/>
+                </picture>
+                <div className="row">
+                    <div className="col s9">
+                        <strong>{p.price}₴</strong>&emsp;
+                        <small>{p.description}</small>
+                    </div>
+                    <div className="col s3">
+                        <a
+                            className="btn-floating cart-fab waves-effect waves-light red"
+                            onClick={(e) => {
+                                e.stopPropagation()
+                                addToCart(p.id)
+                            }}>
+                            <i className="material-icons">shopping_bag</i>
+                        </a>
+                    </div>
+                </div>
+            </div>)}
+            <br/>
+            { (state.auth.token && !(role.roleName === "Admin" && role.canCreate === 1)) &&
+                <form id="add-product-form" onSubmit={addProduct} encType="multipart/form-data">
+                    <hr/>
+                    <input name="product-name" placeholder="Назва"/>
+                    <input name="product-slug" placeholder="Slug"/><br/>
+                    <input name="product-price" type="number" step="0.01" placeholder="Ціна"/><br/>
+                    Картинка: <input type="file" name="product-img"/><br/>
+                    <textarea name="product-description" placeholder="Опис"></textarea><br/>
+                    <input type="hidden" name="product-category-id" value={id}/>
+                    <button type="submit">Додати</button>
+                </form>}
+        </div>}
+        {!products && <div>
+            <h2>Група товарів {id} не існує</h2>
+        </div>}
     </div>;
 }
 
 function Product({id}) {
     const [product, setProduct] = React.useState(null);
     React.useEffect(() => {
-        fetch("shop/product?id=" + id)
-            .then(r => r.json())
-            .then(j => {
-                if (j.status === "Ok") {
-                    setProduct(j.data);
-                } else {
-                    console.error(j.data);
-                    setProduct(null);
-                }
+        // fetch(`${env.apiHost}shop/product?id=${id}`)
+        //     .then(r => r.json())
+        //     .then(j => {
+        //         if (j.status.isSuccessful) {
+        //             setProduct(j.data);
+        //         } else {
+        //             console.error(j.data);
+        //             setProduct(null);
+        //         }
+        //     });
+        request(`shop/product?id=${id}`)
+            .then(setProduct)
+            .catch(err => {
+                console.log(err)
+                setProduct(null);
             });
     }, [id]);
     return <div>
@@ -273,7 +359,7 @@ function Product({id}) {
             <p>Шукаємо...</p>
         </div>}
         <hr/>
-        <CategoriesList/>
+        <CategoriesList mode="table"/>
     </div>;
 }
 
@@ -286,7 +372,7 @@ function CategoriesList({mode}) {
                     {state.shop.categories.map(c =>
                         <div key={c.id}
                              className="shop-category"
-                             onClick={() => dispatch({type: 'navigate', payload: 'category/' + c.id})}>
+                             onClick={() => dispatch({type: 'navigate', payload: 'category/' + (c.slug || c.id)})}>
                             <b>{c.name}</b>
                             <picture>
                                 <img src={"file/" + c.imageUrl} alt="grp"/>
@@ -301,7 +387,7 @@ function CategoriesList({mode}) {
                     {state.shop.categories.map(c =>
                         <div key={c.id}
                              className="shop-category-ribbon"
-                             onClick={() => dispatch({type: 'navigate', payload: 'category/' + c.id})}>
+                             onClick={() => dispatch({type: 'navigate', payload: 'category/' + (c.slug || c.id)})}>
                             <picture>
                                 <img src={"file/" + c.imageUrl} alt="grp"/>
                             </picture>

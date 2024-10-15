@@ -35,6 +35,14 @@ public class RestReponseStatus {
                 this.isSuccessful = false;
                 this.phrase = "Not Found";
                 break;
+            case 415:
+                this.isSuccessful = false;
+                this.phrase = "Unsupported Media Type";
+                break;
+            case 422:
+                this.isSuccessful = false;
+                this.phrase = "Unprocessable Entity";
+                break;
             case 500:
                 this.isSuccessful = false;
                 this.phrase = "Internal Server Error";

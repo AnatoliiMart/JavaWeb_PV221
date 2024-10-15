@@ -6,7 +6,7 @@ import com.google.inject.Singleton;
 import itstep.learning.dal.dao.UserDao;
 import itstep.learning.dal.dto.User;
 import itstep.learning.models.form.UserSignupFormModel;
-import itstep.learning.rest.RestService;
+import itstep.learning.rest.RestServlet;
 import itstep.learning.services.files.FileService;
 import itstep.learning.services.formParse.FormParseResult;
 import itstep.learning.services.formParse.FormParseService;
@@ -14,7 +14,6 @@ import org.apache.commons.fileupload.FileItem;
 
 import javax.naming.AuthenticationException;
 import javax.servlet.ServletException;
-import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
@@ -26,20 +25,18 @@ import java.util.Date;
 import java.util.logging.Logger;
 
 @Singleton
-public class SignUpServlet extends HttpServlet {
+public class SignUpServlet extends RestServlet {
     private final FormParseService formParseService;
     private final FileService fileService;
     private final UserDao userDao;
     private final Logger logger;
-    private final RestService restService;
 
     @Inject
-    public SignUpServlet(FormParseService formParseService, FileService fileService, UserDao userDao, Logger logger, RestService restService) {
+    public SignUpServlet(FormParseService formParseService, FileService fileService, UserDao userDao, Logger logger) {
         this.formParseService = formParseService;
         this.fileService = fileService;
         this.userDao = userDao;
         this.logger = logger;
-        this.restService = restService;
     }
 
     @Override
@@ -65,23 +62,23 @@ public class SignUpServlet extends HttpServlet {
         logger.info("User login: " + userLogin + " password: " + userPassword);
 
         if (userLogin == null || userLogin.isEmpty() || userPassword == null || userPassword.isEmpty()) {
-            restService.sendRestError(resp, 401, "Missing or empty credentials");
+            super.sendRest(401, "Missing or empty credentials");
             return;
         }
 
         try {
             User user = userDao.authenticate(userLogin, userPassword);
             if (user == null) {
-                restService.sendRestError(resp, 401, "Credentials rejected");
+                super.sendRest(401, "Credentials rejected");
                 return;
             }
             // утримання авторизації - сесії
             // зберігаємо у сесію відомості про користувача
             HttpSession session = req.getSession();
             session.setAttribute("userId", user.getId());
-            restService.sendRestResponse(resp, user);
+            super.sendRest(200, user);
         } catch (AuthenticationException | ServerException e) {
-            restService.sendRestError(resp, 400, e.getMessage());
+            super.sendRest(422, e.getMessage());
         }
     }
 
@@ -91,19 +88,18 @@ public class SignUpServlet extends HttpServlet {
         try {
             model = getModelFromRequest(req);
         } catch (Exception e) {
-            restService.sendRestError(resp, 400, e.getMessage());
+            super.sendRest(400, e.getMessage());
             return;
         }
 
         // send model to DB
         User user = userDao.signup(model);
         if (user == null) {
-            restService.sendRestError(resp, 500, "DB Error, details on server logs");
+            super.sendRest(500, "DB Error, details on server logs");
 
             return;
         }
-        restService.sendRestResponse(resp, model);
-
+        super.sendRest(200, model);
     }
 
     private UserSignupFormModel getModelFromRequest(HttpServletRequest req) throws Exception {

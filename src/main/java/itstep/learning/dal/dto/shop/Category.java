@@ -12,16 +12,6 @@ public class Category {
     private String description;
     private String imageUrl;
     private String slug;
-
-    public String getSlug() {
-        return slug;
-    }
-
-    public Category setSlug(String slug) {
-        this.slug = slug;
-        return this;
-    }
-
     private Date deleteDt;
 
     public Category() {
@@ -40,7 +30,14 @@ public class Category {
         }
 
     }
+    public String getSlug() {
+        return slug;
+    }
 
+    public Category setSlug(String slug) {
+        this.slug = slug;
+        return this;
+    }
     public UUID getId() {
         return id;
     }

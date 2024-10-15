@@ -1,19 +1,16 @@
 package itstep.learning.servlets;
 
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import itstep.learning.dal.dao.TokenDao;
 import itstep.learning.dal.dao.UserDao;
 import itstep.learning.dal.dto.Token;
 import itstep.learning.dal.dto.User;
-import itstep.learning.rest.RestResponse;
-import itstep.learning.rest.RestService;
+import itstep.learning.rest.RestServlet;
+
 
 import javax.naming.AuthenticationException;
 import javax.servlet.ServletException;
-import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
@@ -22,36 +19,35 @@ import java.util.Base64;
 import java.util.logging.Logger;
 
 @Singleton
-public class AuthServlet extends HttpServlet {
+public class AuthServlet extends RestServlet {
     private final Logger logger;
     private final UserDao userDao;
     private final TokenDao tokenDao;
-    private final RestService restService;
+
 
     @Inject
-    public AuthServlet(Logger logger, UserDao userDao, TokenDao tokenDao, RestService restService) {
+    public AuthServlet(Logger logger, UserDao userDao, TokenDao tokenDao) {
         this.logger = logger;
         this.userDao = userDao;
         this.tokenDao = tokenDao;
-        this.restService = restService;
     }
 
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
         String authHeader = req.getHeader("Authorization");
         if (authHeader == null) {
-            restService.sendRestError(resp, "Missing Authorization header");
+            super.sendRest(401, "Missing Authorization header");
             return;
         }
         if (!authHeader.startsWith("Basic ")) {
-            restService.sendRestError(resp, "Basic Authorization scheme only");
+            super.sendRest(401, "Basic Authorization scheme only");
         }
         String credentials64 = authHeader.substring(6);
         String credentials;
         try {
             credentials = new String(Base64.getUrlDecoder().decode(credentials64));
         } catch (IllegalArgumentException ex) {
-            restService.sendRestError(resp, "Illegal credentials");
+            super.sendRest(401, "Illegal credentials");
             logger.warning(ex.getMessage());
             return;
         }
@@ -67,7 +63,7 @@ public class AuthServlet extends HttpServlet {
             else{
                 logger.info("Token prolongation: " + token);
             }
-            restService.sendRestResponse(resp, token);
+            super.sendRest(200, token);
         } catch (AuthenticationException | SQLException e) {
             logger.warning(e.getMessage());
         }

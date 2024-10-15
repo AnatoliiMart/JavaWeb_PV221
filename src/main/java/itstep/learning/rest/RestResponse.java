@@ -10,8 +10,9 @@ public class RestResponse {
         return meta;
     }
 
-    public void setMeta(RestMetaData metaData) {
+    public RestResponse setMeta(RestMetaData metaData) {
         this.meta = metaData;
+        return this;
     }
 
     public RestReponseStatus getStatus() {
