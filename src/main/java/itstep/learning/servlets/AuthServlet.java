@@ -15,7 +15,10 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.sql.SQLException;
+import java.sql.Timestamp;
 import java.util.Base64;
+import java.util.Calendar;
+import java.util.concurrent.TimeUnit;
 import java.util.logging.Logger;
 
 @Singleton
@@ -57,13 +60,13 @@ public class AuthServlet extends RestServlet {
             Token token = tokenDao.getNotExpiredTokenByUserId(user.getId());
             if (token == null) {
                 token = tokenDao.createToken(user);
-
                 logger.info("Created new token: " + token);
             }
             else{
                 logger.info("Token prolongation: " + token);
             }
-            super.sendRest(200, token);
+            long cacheTime = TimeUnit.MILLISECONDS.toSeconds(token.getExp().getTime() - System.currentTimeMillis());
+            super.sendRest(200, token, (int)cacheTime);
         } catch (AuthenticationException | SQLException e) {
             logger.warning(e.getMessage());
         }
