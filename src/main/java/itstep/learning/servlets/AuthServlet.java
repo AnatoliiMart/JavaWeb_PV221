@@ -66,7 +66,7 @@ public class AuthServlet extends RestServlet {
                 logger.info("Token prolongation: " + token);
             }
             long cacheTime = TimeUnit.MILLISECONDS.toSeconds(token.getExp().getTime() - System.currentTimeMillis());
-            super.sendRest(200, token, (int)cacheTime);
+            super.sendRest(200, token);
         } catch (AuthenticationException | SQLException e) {
             logger.warning(e.getMessage());
         }

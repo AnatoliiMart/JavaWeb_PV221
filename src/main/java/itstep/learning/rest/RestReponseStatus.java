@@ -35,6 +35,10 @@ public class RestReponseStatus {
                 this.isSuccessful = false;
                 this.phrase = "Not Found";
                 break;
+            case 409:
+                this.isSuccessful = false;
+                this.phrase = "Conflict";
+                break;
             case 415:
                 this.isSuccessful = false;
                 this.phrase = "Unsupported Media Type";

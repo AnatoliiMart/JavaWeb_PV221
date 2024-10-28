@@ -2,8 +2,11 @@ package itstep.learning.dal.dao.shop;
 
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
+import itstep.learning.dal.dto.shop.CartItem;
 
 import java.sql.*;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -17,6 +20,34 @@ public class CartDao {
     public CartDao(Logger logger, Connection connection) {
         this.logger = logger;
         this.connection = connection;
+    }
+
+    public List<CartItem> getCart(String userId) {
+        UUID uuid;
+        try {
+            uuid = UUID.fromString(userId);
+        } catch (Exception ignored) {
+            return null;
+        }
+        String sql = "SELECT * " +
+                "FROM carts c " +
+                "JOIN cart_items ci ON  c.cart_id = ci.cart_id " +
+                "JOIN products p ON ci.product_id = p.product_id " +
+                "WHERE c.user_id = ? " +
+                "AND c.close_dt IS NULL " +
+                "AND (c.isCanceled = 0 OR c.isCanceled IS NULL ) ";
+        try (PreparedStatement prep = connection.prepareStatement(sql)) {
+            prep.setString(1, uuid.toString());
+            ResultSet rs = prep.executeQuery();
+            List<CartItem> cartItems = new ArrayList<>();
+            while (rs.next()) {
+                cartItems.add(new CartItem(rs));
+            }
+            return cartItems;
+        } catch (SQLException ex) {
+            logger.log(Level.WARNING, ex.getMessage() + " -- " + sql, ex);
+        }
+        return null;
     }
 
     public boolean installTables() {
@@ -62,8 +93,7 @@ public class CartDao {
             if (rs.next()) { // Є активний кошик
                 cartId = UUID.fromString(rs.getString(1));
             }
-        }
-        catch (SQLException ex) {
+        } catch (SQLException ex) {
             logger.log(Level.WARNING, ex.getMessage() + " -- " + sql, ex);
             return false;
         }
@@ -71,12 +101,11 @@ public class CartDao {
 
             cartId = UUID.randomUUID();
             sql = "INSERT INTO carts (cart_id, user_id) VALUES (?, ?)";
-            try(PreparedStatement prep = connection.prepareStatement(sql)){
+            try (PreparedStatement prep = connection.prepareStatement(sql)) {
                 prep.setString(1, cartId.toString());
                 prep.setString(2, userId.toString());
                 prep.executeUpdate();
-            }
-            catch (SQLException ex) {
+            } catch (SQLException ex) {
                 logger.log(Level.WARNING, ex.getMessage() + " -- " + sql, ex);
                 return false;
             }
@@ -86,33 +115,89 @@ public class CartDao {
         // Якщо є - збільшуємо кількість, якщо ні - додаємо
         sql = "SELECT count(*) FROM cart_items c WHERE c.cart_id = ? AND c.product_id = ?";
         int count;
-        try(PreparedStatement prep = connection.prepareStatement(sql)) {
+        try (PreparedStatement prep = connection.prepareStatement(sql)) {
             prep.setString(1, cartId.toString());
             prep.setString(2, productId.toString());
             ResultSet rs = prep.executeQuery();
             rs.next();
             count = rs.getInt(1);
-        }
-        catch (SQLException ex) {
+        } catch (SQLException ex) {
             logger.log(Level.WARNING, ex.getMessage() + " -- " + sql, ex);
             return false;
         }
         if (count == 0) { // Немає товару в кошику
             sql = "INSERT INTO cart_items (cnt, cart_id, product_id) VALUES (?, ?, ?)";
-        }
-        else{
+        } else {
             sql = "UPDATE cart_items SET cnt = cnt + ? WHERE cart_id = ? AND product_id = ?";
         }
-        try(PreparedStatement prep = connection.prepareStatement(sql)) {
+        try (PreparedStatement prep = connection.prepareStatement(sql)) {
             prep.setInt(1, count);
             prep.setString(2, cartId.toString());
             prep.setString(3, productId.toString());
             prep.executeUpdate();
-        }
-        catch (SQLException ex) {
+        } catch (SQLException ex) {
             logger.log(Level.WARNING, ex.getMessage() + " -- " + sql, ex);
             return false;
         }
         return true;
+    }
+
+    public boolean update(UUID cartId, UUID productId, int delta) throws Exception {
+        if (cartId == null || productId == null || delta == 0) {
+            return false;
+        }
+        String sql = "SELECT cnt FROM cart_items WHERE cart_id = ? AND product_id = ?";
+        int cnt;
+        try (PreparedStatement prep = connection.prepareStatement(sql)) {
+            prep.setString(1, cartId.toString());
+            prep.setString(2, productId.toString());
+            ResultSet rs = prep.executeQuery();
+            if (rs.next()) {
+                cnt = rs.getInt(1);
+            } else {
+                return false;
+            }
+        } catch (SQLException ex) {
+            logger.log(Level.WARNING, ex.getMessage() + " -- " + sql, ex);
+            throw new Exception();
+        }
+        cnt += delta;
+        if (cnt < 0) {
+            return false;
+        }
+        if (cnt == 0) {
+            sql = "DELETE FROM cart_items WHERE cart_id = ? AND product_id = ?";
+        } else {
+            sql = "UPDATE  cart_items SET cnt =  ? WHERE cart_id = ? AND product_id = ?";
+        }
+        try (PreparedStatement prep = connection.prepareStatement(sql)) {
+            if (cnt == 0) {
+                prep.setString(1, cartId.toString());
+                prep.setString(2, productId.toString());
+            } else {
+                prep.setInt(1, cnt);
+                prep.setString(2, cartId.toString());
+                prep.setString(3, productId.toString());
+
+            }
+            prep.executeUpdate();
+            return true;
+        } catch (SQLException ex) {
+            logger.log(Level.WARNING, ex.getMessage() + " -- " + sql, ex);
+            throw new Exception();
+        }
+    }
+    public boolean close(UUID cartId, boolean isCanceled){
+        String sql = "UPDATE carts SET close_dt = CURRENT_TIMESTAMP, isCanceled = ? WHERE cart_id = ?";
+        try (PreparedStatement prep = connection.prepareStatement(sql) ){
+            prep.setInt(1, isCanceled ? 1 : 0);
+            prep.setString(2, cartId.toString());
+            prep.executeUpdate();
+            return true;
+        }
+        catch (SQLException ex){
+            logger.log(Level.WARNING, ex.getMessage() + " -- " + sql, ex);
+            return false;
+        }
     }
 }

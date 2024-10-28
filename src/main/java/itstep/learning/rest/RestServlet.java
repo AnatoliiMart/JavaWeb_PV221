@@ -31,14 +31,11 @@ public class RestServlet extends HttpServlet {
         restResponse.setStatus(statusCode).setData(data);
         switch (req.getServletPath()) {
             case "/shop/category":
-                sendRest(60 * 60 * 24);
-                return;
             case "/shop/product":
-                sendRest(60 * 60);
-                break;
+                sendRest(0);
+                return;
             default:
                 sendRest(0);
-                break;
         }
     }
 
