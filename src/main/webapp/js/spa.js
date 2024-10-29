@@ -506,8 +506,8 @@ function Cart() {
     })
 
     const buyClick = React.useCallback(() => {
-        if (confirm(`Confirm ${state.cart.reduce((prev, c) => prev + c.quantity * c.product.price)} UAH pay ?`)) {
-            request(`shop/cart?cart-id=${state.cart[0].cartId}`, {
+        if (confirm(`Confirm ${state.cart.reduce((prev, c) => prev + c.quantity * c.product.price, 0)} UAH pay ?`)) {
+            request(`shop/cart?cart-id=${state.cart[0].cartId}&is-canceled=N`, {
                 method: 'PATCH',
                 headers: {
                     Authorization: 'Bearer ' + state.auth.token.tokenId,
@@ -518,6 +518,22 @@ function Cart() {
                 .catch(console.log)
         }
     })
+    const closeCartClick = React.useCallback(() => {
+        if (confirm(`Confirm cart discarding`)) {
+            request(`shop/cart?cart-id=${state.cart[0].cartId}&is-canceled=Y`, {
+                method: 'PATCH',
+                headers: {
+                    Authorization: 'Bearer ' + state.auth.token.tokenId,
+                    'Content-Type': 'application/json',
+                },
+            })
+                .then(() => loadCart())
+                .catch(console.log)
+        }
+    })
+    // const closeClick = React.useCallback(()=> {
+    //
+    // })
     return state.cart.length ? <div className="cart-container">
         <div className="cart-header">
             Cart
@@ -543,6 +559,7 @@ function Cart() {
             <span
                 className="cart-total">Total: {state.cart.reduce((cnt, c) => cnt + c.quantity, 0)} products / {state.cart.reduce((price, c) => price + c.quantity * c.product.price, 0)} UAH</span>
             <button className="cart-checkout-button" onClick={() => buyClick()}>Make order</button>
+            <button className="cart-cancel-button" onClick={() => closeCartClick()}>Cancel</button>
         </div>
     </div> : <div className="cart-header">There are no products in cart</div>
 

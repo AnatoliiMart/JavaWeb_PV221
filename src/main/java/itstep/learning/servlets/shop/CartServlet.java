@@ -17,10 +17,7 @@ import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.sql.PreparedStatement;
 import java.text.ParseException;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 import java.util.logging.Logger;
 
 @Singleton
@@ -179,10 +176,9 @@ public class CartServlet extends RestServlet {
             super.sendRest(400, "'cart-id' parameter must be a valid UUID");
             return;
         }
-        super.sendRest(202, cartDao.close(cartId, false));
+        boolean isCanceled = req.getParameter("is-canceled").equals("Y");
+        super.sendRest(202, cartDao.close(cartId, isCanceled));
     }
-
-
 
     private JsonObject parseBodyAsObject(HttpServletRequest request) throws ParseException {
         JsonElement json = parseBody(request);
