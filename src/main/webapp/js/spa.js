@@ -301,6 +301,7 @@ function Category({id, isAdmin}) {
             body: JSON.stringify({
                 userId,
                 productId: id,
+                count: "1",
             })
         })
             .then(() => loadCart())

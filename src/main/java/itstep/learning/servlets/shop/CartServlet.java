@@ -10,6 +10,7 @@ import itstep.learning.rest.RestMetaData;
 import itstep.learning.rest.RestResponse;
 import itstep.learning.rest.RestServlet;
 import itstep.learning.services.stream.StringReader;
+import jdk.nashorn.internal.codegen.types.NumericType;
 
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
@@ -92,7 +93,27 @@ public class CartServlet extends RestServlet {
             super.sendRest(422, "'productId' field must be a valid UUID");
             return;
         }
-        if (cartDao.add(UUID.fromString(userId), cartProductId, 1))
+        element = json.getAsJsonObject().get("count");
+        if (element == null) {
+            super.sendRest(422, "JSON must have 'count' field");
+            return;
+        }
+        int count;
+        try {
+            count = element.getAsInt();
+            if (count <= 0) {
+                super.sendRest(403, "'count' field must be a positive integer" );
+                return;
+            }
+
+        }
+        catch (NumberFormatException e) {
+            super.sendRest(422, "'count' field must be an integer");
+            return;
+        }
+
+
+        if (cartDao.add(UUID.fromString(userId), cartProductId, count))
             super.sendRest(201, userId);
         else
             super.sendRest(500, "See Server log for details");
