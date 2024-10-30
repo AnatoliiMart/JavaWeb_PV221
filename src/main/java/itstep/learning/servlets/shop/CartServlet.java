@@ -94,25 +94,23 @@ public class CartServlet extends RestServlet {
             return;
         }
         element = json.getAsJsonObject().get("count");
-        if (element == null) {
-            super.sendRest(422, "JSON must have 'count' field");
-            return;
-        }
         int count;
-        try {
-            count = element.getAsInt();
-            if (count <= 0) {
-                super.sendRest(403, "'count' field must be a positive integer" );
+        if (element == null) {
+            count = 1;
+        }
+        else{
+            try {
+                count = element.getAsInt();
+                if (count <= 0) {
+                    super.sendRest(403, "'count' field must be a positive integer" );
+                    return;
+                }
+            }
+            catch (NumberFormatException e) {
+                super.sendRest(403, "'count' field must be an integer");
                 return;
             }
-
         }
-        catch (NumberFormatException e) {
-            super.sendRest(422, "'count' field must be an integer");
-            return;
-        }
-
-
         if (cartDao.add(UUID.fromString(userId), cartProductId, count))
             super.sendRest(201, userId);
         else
